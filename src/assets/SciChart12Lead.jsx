@@ -8,7 +8,7 @@ import {
   SciChartSurface,
   XyDataSeries,
   EAutoRange,
-  EThemeProviderType, // <--- 1. Import Enum Type Tema
+  EThemeProviderType,
 } from "scichart";
 
 // Konstanta Konfigurasi
@@ -31,11 +31,11 @@ const LEAD_NAMES = [
   "V6",
 ];
 
-const TRACE_COLOR = "#00FF00";
+const TRACE_COLOR = "#00FF00"; // Hijau Neon
 const BACKGROUND_COLOR = "#1c1c1e";
 
 export const draw12LeadEcg = async (rootElement) => {
-  // 2. PERBAIKAN DI SINI: Gunakan object { type: ... }
+  // 1. Setup Surface
   const { sciChartSurface, wasmContext } = await SciChartSurface.create(
     rootElement,
     {
@@ -43,36 +43,34 @@ export const draw12LeadEcg = async (rootElement) => {
     }
   );
 
-  // Set background manual agar lebih gelap sesuai keinginan
   sciChartSurface.background = BACKGROUND_COLOR;
 
-  // 3. Setup X-Axis
+  // 2. Setup X-Axis
   const xAxis = new CategoryAxis(wasmContext, {
     visibleRange: new NumberRange(0, POINTS_LOOP),
     isVisible: false,
   });
   sciChartSurface.xAxes.add(xAxis);
 
-  // 4. Setup Layout Strategy
+  // 3. Setup Layout Strategy (STACKED VERTICAL)
   sciChartSurface.layoutManager.rightOuterAxesLayoutStrategy =
     new RightAlignedOuterVerticallyStackedAxisLayoutStrategy();
 
   const dataSeriesRefs = [];
 
-  // 5. LOOPING: Buat 12 Axis dan 12 Series
+  // 4. LOOPING: Buat 12 Axis dan 12 Series
   LEAD_NAMES.forEach((leadName, index) => {
-    // A. Buat Y-Axis
+    // Y-Axis
     const yAxis = new NumericAxis(wasmContext, {
       id: `yAxis_${leadName}`,
-      visibleRange: new NumberRange(-1.5, 1.5),
+      visibleRange: new NumberRange(-2.0, 2.0), // Range Default diperbesar sedikit
       isVisible: false,
-      autoRange: EAutoRange.Always,
+      autoRange: EAutoRange.Always, // PENTING: Agar grafik tidak gepeng
       growBy: new NumberRange(0.1, 0.1),
     });
-
     sciChartSurface.yAxes.add(yAxis);
 
-    // B. Buat Data Series
+    // Data Series
     const dataSeries = new XyDataSeries(wasmContext, {
       fifoCapacity: POINTS_LOOP,
       fifoSweeping: true,
@@ -80,7 +78,7 @@ export const draw12LeadEcg = async (rootElement) => {
     });
     dataSeriesRefs.push(dataSeries);
 
-    // C. Buat Renderable Series
+    // Renderable Series
     const renderableSeries = new FastLineRenderableSeries(wasmContext, {
       yAxisId: `yAxis_${leadName}`,
       strokeThickness: STROKE_THICKNESS,
@@ -98,19 +96,24 @@ export const draw12LeadEcg = async (rootElement) => {
     sciChartSurface.renderableSeries.add(renderableSeries);
   });
 
-  // 6. Fungsi Update Data
+  // 5. Fungsi Update Data (DIPERBAIKI)
   const updateEcgData = (signalData) => {
-    // Validasi data
+    console.log("SciChart: Menerima Data...", signalData); // DEBUG
+
     if (!Array.isArray(signalData)) return;
 
     signalData.forEach((leadValues, index) => {
-      // Cek apakah dataSeries tersedia dan data lead ada
       if (dataSeriesRefs[index] && leadValues && leadValues.length > 0) {
         const xValues = Array.from({ length: leadValues.length }, (_, i) => i);
+
+        // Masukkan Data
         dataSeriesRefs[index].clear();
         dataSeriesRefs[index].appendRange(xValues, leadValues);
       }
     });
+
+    // PENTING: Paksa kamera untuk melihat data (Zoom Extents)
+    sciChartSurface.zoomExtents();
   };
 
   return { sciChartSurface, controls: { updateEcgData } };

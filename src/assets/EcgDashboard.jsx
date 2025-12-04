@@ -5,46 +5,52 @@ const EcgDashboard = () => {
   const chartDivId = "ecg-chart-root";
   const [chartControls, setChartControls] = useState(null);
   const [prediction, setPrediction] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Inisialisasi Chart saat pertama kali load
   useEffect(() => {
     const initChart = async () => {
-      // Pastikan div sudah ada sebelum init
-      const res = await draw12LeadEcg(chartDivId);
-      setChartControls(res.controls);
+      try {
+        const res = await draw12LeadEcg(chartDivId);
+        setChartControls(res.controls);
+      } catch (err) {
+        console.error("SciChart Error:", err);
+      }
     };
     initChart();
   }, []);
 
-  // 2. Fungsi Upload & Panggil API
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    setIsLoading(true);
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // Panggil API FastAPI
       const response = await fetch("http://localhost:8000/predict", {
         method: "POST",
         body: formData,
       });
       const result = await response.json();
 
+      console.log("API Result:", result); // Cek Console browser
+
       if (result.status === "success") {
         setPrediction(result);
 
-        // Update Grafik jika kontrol chart sudah siap
+        // Panggil fungsi update grafik
         if (chartControls && result.signal_data) {
+          console.log("Mengupdate grafik dengan data...");
           chartControls.updateEcgData(result.signal_data);
+        } else {
+          console.error("Chart Controls belum siap!");
         }
-      } else {
-        alert("Gagal memproses data");
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Terjadi kesalahan koneksi");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,47 +61,39 @@ const EcgDashboard = () => {
         flexDirection: "column",
         height: "100vh",
         background: "#000",
-        fontFamily: "sans-serif",
+        color: "#fff",
       }}
     >
-      {/* Header / Toolbar */}
+      {/* Header */}
       <div
         style={{
-          padding: "20px",
-          color: "white",
+          padding: "10px 20px",
           borderBottom: "1px solid #333",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
         }}
       >
         <div>
-          <h2 style={{ margin: "0 0 10px 0" }}>ECG 12-Lead Monitor</h2>
-          <input
-            type="file"
-            onChange={handleUpload}
-            style={{ color: "white" }}
-          />
+          <h3>12-Lead ECG</h3>
+          <input type="file" onChange={handleUpload} disabled={isLoading} />
         </div>
-
-        {/* Tampilkan Hasil Prediksi */}
         {prediction && (
           <div style={{ textAlign: "right" }}>
-            <h2 style={{ margin: 0, color: "#FFFF00", fontSize: "2rem" }}>
+            <h2 style={{ margin: 0, color: "#0f0" }}>
               {prediction.prediction}
             </h2>
-            <div style={{ color: "#00FFFF", fontSize: "1.2rem" }}>
-              Confidence: {prediction.confidence}
-            </div>
+            <small>Confidence: {prediction.confidence}</small>
           </div>
         )}
       </div>
 
-      {/* Area Chart */}
-      <div
-        id={chartDivId}
-        style={{ flex: 1, width: "100%", position: "relative" }}
-      />
+      {/* PENTING: Container Grafik 
+         Pastikan 'flex: 1' agar dia mengisi sisa layar.
+         Dan Div di dalamnya punya height: 100%.
+      */}
+      <div style={{ flex: 1, position: "relative", minHeight: "0" }}>
+        <div id={chartDivId} style={{ width: "100%", height: "100%" }} />
+      </div>
     </div>
   );
 };

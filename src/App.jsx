@@ -4,7 +4,13 @@ import EcgChartComponent from "./assets/ECGChartComponent";
 SciChartSurface.useWasmFromCDN();
 function App() {
   return (
-    <div className="App">
+    <div
+      style={{
+        width: "100%",
+        padding: "20px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
       <EcgChartComponent />
     </div>
   );

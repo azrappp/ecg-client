@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { SciChartSurface } from "scichart";
 import EcgChartComponent from "./assets/ECGChartComponent";
+import EcgDashboard from "./pages/EcgDashboard";
 SciChartSurface.useWasmFromCDN();
 function App() {
   return (
@@ -11,7 +12,7 @@ function App() {
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <EcgChartComponent />
+      <EcgDashboard />
     </div>
   );
 }

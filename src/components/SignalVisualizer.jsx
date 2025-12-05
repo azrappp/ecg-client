@@ -38,7 +38,7 @@ const SignalVisualizer = ({ signalData }) => {
   }
 
   return (
-    <div className="bg-gray-950 p-4 rounded-lg border border-gray-800">
+    <div className="bg-white p-4 rounded-lg border border-gray-800">
       <h3 className="text-blue-300 mb-4 font-bold">Signal Visualizer</h3>
 
       <div className="flex flex-col gap-2">

@@ -4,40 +4,51 @@ import {
   NumericAxis,
   FastLineRenderableSeries,
   XyDataSeries,
-  SciChartJsNavyTheme,
   ZoomPanModifier,
   MouseWheelZoomModifier,
   RolloverModifier,
   NumberRange,
+  EAnimationType,
 } from "scichart";
 
+// Import the custom theme we defined above
+import { customTheme } from "../styles/theme"; // Or define const customTheme = ... here
+
 const SingleLeadChart = ({ data, verticalGroup, xVisibleRange, leadIndex }) => {
-  // Use a unique ID every time to prevent DOM conflicts during rapid re-renders
   const chartDivId = useRef(
     `chart-div-${leadIndex}-${Math.random().toString(36).substr(2, 9)}`
   );
-
-  // State to hold the created surface.
-  // We use State instead of Ref for 'surface' so we can trigger the second useEffect.
   const [sciChartSurface, setSciChartSurface] = useState(null);
-
   const dataSeriesRef = useRef(null);
+  const LEAD_NAMES = [
+    "I",
+    "II",
+    "III",
+    "aVR",
+    "aVL",
+    "aVF",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+  ];
 
-  // ---------------------------------------------------------------------------
-  // EFFECT 1: Create & Destroy the Chart Surface (Runs ONCE per mount)
-  // ---------------------------------------------------------------------------
+  // EFFECT 1: Create Chart
   useEffect(() => {
     let isMounted = true;
-    let autoDelete = true; // Safety flag
+    let autoDelete = true;
 
     const initChart = async () => {
       try {
+        // 1. APPLY THEME HERE
         const { sciChartSurface: surface, wasmContext } =
-          await SciChartSurface.create(chartDivId.current, {
-            theme: new SciChartJsNavyTheme(),
-          });
+          await SciChartSurface.create(
+            chartDivId.current,
+            { theme: customTheme } // <--- Switched from SciChartJsNavyTheme to customTheme
+          );
 
-        // Race Condition Check: Component unmounted while loading?
         if (!isMounted) {
           surface.delete();
           return;
@@ -48,7 +59,7 @@ const SingleLeadChart = ({ data, verticalGroup, xVisibleRange, leadIndex }) => {
           visibleRange: xVisibleRange,
           drawMajorGridLines: true,
           drawMinorGridLines: false,
-          axisTitle: `Lead ${leadIndex + 1}`,
+          axisTitle: LEAD_NAMES[leadIndex] || `Lead ${leadIndex + 1}`,
         });
 
         const yAxis = new NumericAxis(wasmContext, {
@@ -75,19 +86,21 @@ const SingleLeadChart = ({ data, verticalGroup, xVisibleRange, leadIndex }) => {
         surface.renderableSeries.add(
           new FastLineRenderableSeries(wasmContext, {
             dataSeries,
-            stroke: "#50C7E0",
+            stroke: "auto",
             strokeThickness: 2,
+            animation: {
+              type: EAnimationType.Sweep,
+              options: { duration: 500 },
+            },
           })
         );
 
-        // Initial Data
         if (data && data.length > 0) {
           const xValues = data.map((_, i) => i);
           dataSeries.appendRange(xValues, data);
         }
 
-        // Save to state to trigger the Sync Effect
-        autoDelete = false; // We passed the dangerous phase, disable auto-delete
+        autoDelete = false;
         setSciChartSurface(surface);
       } catch (err) {
         console.error("Chart Init Failed", err);
@@ -96,27 +109,18 @@ const SingleLeadChart = ({ data, verticalGroup, xVisibleRange, leadIndex }) => {
 
     initChart();
 
-    // CLEANUP
     return () => {
       isMounted = false;
-      // If the chart was created but state wasn't set (rare race), or if normal unmount
       if (autoDelete) {
-        // This catch block handles the case where init is still running
+        // cleanup logic handled in Effect 2
       }
-      // Note: We perform actual deletion in the state setter cleanup or below,
-      // but 'autoDelete' logic is implicit in how setSciChartSurface triggers unmount.
     };
-  }, []); // Dependencies: empty array = run once.
+  }, []);
 
-  // ---------------------------------------------------------------------------
-  // EFFECT 2: Handle Deletion (When component unmounts)
-  // ---------------------------------------------------------------------------
+  // EFFECT 2: Cleanup
   useEffect(() => {
-    // This effect runs when 'sciChartSurface' state is set.
-    // The return function runs when the component unmounts OR when sciChartSurface changes.
     return () => {
       if (sciChartSurface) {
-        // IMPORTANT: Remove from group BEFORE deleting to prevent "getFont" error
         if (verticalGroup) {
           verticalGroup.removeSurfaceFromGroup(sciChartSurface);
         }
@@ -126,31 +130,17 @@ const SingleLeadChart = ({ data, verticalGroup, xVisibleRange, leadIndex }) => {
     };
   }, [sciChartSurface, verticalGroup]);
 
-  // ---------------------------------------------------------------------------
-  // EFFECT 3: Register with Vertical Group (Sync Logic)
-  // ---------------------------------------------------------------------------
+  // EFFECT 3: Sync
   useEffect(() => {
     if (!sciChartSurface || !verticalGroup) return;
-
     try {
       verticalGroup.addSurfaceToGroup(sciChartSurface);
     } catch (error) {
-      console.warn(
-        "Failed to attach to group (harmless race condition):",
-        error
-      );
+      console.warn("Sync error (harmless)", error);
     }
-
-    // Cleanup for this specific effect
-    return () => {
-      // We rely on Effect 2 for final cleanup, but removing here is safe too
-      verticalGroup.removeSurfaceFromGroup(sciChartSurface);
-    };
   }, [sciChartSurface, verticalGroup]);
 
-  // ---------------------------------------------------------------------------
-  // EFFECT 4: Handle Data Updates (Fast Re-draw)
-  // ---------------------------------------------------------------------------
+  // EFFECT 4: Update Data
   useEffect(() => {
     if (dataSeriesRef.current && data && data.length > 0) {
       const series = dataSeriesRef.current;
@@ -163,7 +153,8 @@ const SingleLeadChart = ({ data, verticalGroup, xVisibleRange, leadIndex }) => {
   return (
     <div
       id={chartDivId.current}
-      className="w-full h-[150px] bg-gray-900 mb-1 relative"
+      className="w-full h-[100px] mb-1 relative"
+      style={{ height: "120px", width: "100%" }}
     />
   );
 };

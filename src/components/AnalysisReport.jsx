@@ -3,12 +3,23 @@ import React from "react";
 const AnalysisReport = ({ apiData }) => {
   if (!apiData) return null;
 
-  // Theme constants based on your SciChart CustomTheme
+  // Theme constants
   const theme = {
-    navy: "#1F3D68", // axisTitleColor / tickTextBrush
-    blue: "#264B93", // strokePalette[0]
-    lightBlue: "#E4F5FC", // sciChartBackground
-    border: "#1F3D6820", // Low opacity navy for borders
+    navy: "#1F3D68",
+    blue: "#264B93",
+    lightBlue: "#E4F5FC",
+    border: "#1F3D6820",
+  };
+
+  // Helper untuk memformat nama model agar terlihat bagus
+  const formatModelName = (name) => {
+    const map = {
+      resnet: "ResNet",
+      cnn: "CNN Standard",
+      attention: "Attention",
+      multiscale: "Multi-Scale",
+    };
+    return map[name] || name?.toUpperCase() || "Unknown";
   };
 
   return (
@@ -69,10 +80,25 @@ const AnalysisReport = ({ apiData }) => {
             </div>
           </div>
 
-          {/* Metrics Grid */}
-          <div className="grid">
-            <div className="p-3 rounded-lg border border-slate-100 bg-slate-50">
-              <label className="text-xs text-gray-500 uppercase block mb-1">
+          {/* === BAGIAN INI DIUPDATE (Metrics Grid) === */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Box 1: Model Used */}
+            <div className="p-3 rounded-lg border border-slate-100 bg-slate-50 flex flex-col justify-center">
+              <label className="text-[10px] text-gray-500 uppercase block mb-1 font-bold">
+                Model Architecture
+              </label>
+              <div
+                className="text-base font-bold truncate"
+                style={{ color: theme.blue }}
+                title={formatModelName(apiData.model_used)}
+              >
+                {formatModelName(apiData.model_used)}
+              </div>
+            </div>
+
+            {/* Box 2: Beats Detected */}
+            <div className="p-3 rounded-lg border border-slate-100 bg-slate-50 flex flex-col justify-center">
+              <label className="text-[10px] text-gray-500 uppercase block mb-1 font-bold">
                 Beats Detected
               </label>
               <div className="text-lg font-bold" style={{ color: theme.navy }}>
@@ -80,6 +106,7 @@ const AnalysisReport = ({ apiData }) => {
               </div>
             </div>
           </div>
+          {/* ========================================== */}
 
           {/* Probabilities Section */}
           <div>
@@ -94,7 +121,6 @@ const AnalysisReport = ({ apiData }) => {
             <div className="space-y-3">
               {apiData.probabilities &&
                 Object.entries(apiData.probabilities)
-                  // Sort by highest probability first
                   .sort(([, a], [, b]) => b - a)
                   .map(([key, val]) => {
                     const percentage = val * 100;
@@ -124,7 +150,7 @@ const AnalysisReport = ({ apiData }) => {
                               width: `${percentage}%`,
                               backgroundColor: isDominant
                                 ? theme.blue
-                                : "#94a3b8", // Blue for winner, gray for others
+                                : "#94a3b8",
                               opacity: isDominant ? 1 : 0.5,
                             }}
                           />

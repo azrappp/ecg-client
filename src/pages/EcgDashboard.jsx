@@ -6,16 +6,21 @@ import AnalysisReport from "../components/AnalysisReport";
 import { useEcgAnalysis } from "../hooks/useEcgAnalysis";
 
 const EcgDashboard = () => {
-  const { file, apiData, loading, error, handleFileChange, analyzeSignal } =
-    useEcgAnalysis();
+  const {
+    file,
+    apiData,
+    loading,
+    error,
+    handleFileChange,
+    analyzeSignal,
+    selectedModel, // <--- Ambil state
+    setSelectedModel, // <--- Ambil setter
+  } = useEcgAnalysis();
 
   return (
-    // 1. Theme Background: Light slate background for the whole page
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 selection:bg-blue-100 selection:text-blue-900">
-      {/* 2. Navigation */}
       <NavbarECG />
 
-      {/* 3. Main Content Container with Top Padding for Fixed Navbar */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
         {/* Controls Section */}
         <section className="mb-8">
@@ -24,6 +29,8 @@ const EcgDashboard = () => {
             onUpload={analyzeSignal}
             loading={loading}
             hasFile={!!file}
+            selectedModel={selectedModel} // <--- Pass ke component
+            onModelChange={setSelectedModel} // <--- Pass ke component
           />
         </section>
 
@@ -55,24 +62,21 @@ const EcgDashboard = () => {
         {/* Data Visualization Grid */}
         {apiData && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start animate-in fade-in duration-500">
-            {/* Left Column: Signal Visualizer (Takes 3/4 space) */}
+            {/* Left Column: Signal Visualizer */}
             <div className="lg:col-span-3 space-y-6">
               <div className="bg-white p-1 rounded-2xl shadow-[0_4px_20px_-10px_rgba(31,61,104,0.15)] border border-slate-100">
-                {/* Wrapped in a styled card container */}
                 <SignalVisualizer signalData={apiData.signal_data} />
               </div>
             </div>
 
-            {/* Right Column: Analysis Report (Takes 1/4 space) */}
-            {/* The AnalysisReport component already handles its own col-span internally if needed, 
-                but explicit grid placement here is safer */}
+            {/* Right Column: Analysis Report */}
             <div className="lg:col-span-1">
               <AnalysisReport apiData={apiData} />
             </div>
           </div>
         )}
 
-        {/* Empty State / Placeholder (Optional) */}
+        {/* Empty State / Placeholder */}
         {!apiData && !loading && !error && (
           <div className="text-center py-20 opacity-40">
             <div className="inline-block p-6 rounded-full bg-slate-100 mb-4">
@@ -94,7 +98,9 @@ const EcgDashboard = () => {
               No Signal Data Loaded
             </h3>
             <p className="text-slate-500">
-              Upload a ZIP file to view ECG analysis
+              {/* Pesan sedikit diubah agar user tau bisa pakai data lama */}
+              Select a model and upload a ZIP file to view ECG analysis. <br />
+              Previous analysis will be saved automatically.
             </p>
           </div>
         )}
